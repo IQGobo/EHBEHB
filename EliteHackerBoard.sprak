@@ -1,0 +1,1071 @@
+string lastroom = ""
+array lastlist = []
+number lastlistaddr = 1000
+string lastmsg = ""
+array argv = []
+number argc = 0
+bool ctc = false
+bool std = true
+string filter = "none"
+number pager = 28
+
+var ext = -1
+var ms = -1
+var zap = -1
+
+array vars = ["ctc", "filter", "pager", "std", "weather"]
+
+Setup()
+LoadGlobals()
+
+loop
+    ReadCommand()
+    
+    if argv[0] == "find"
+        if argc < 2
+            string cmd = Input("Object: ")
+            Append(argv, cmd)
+            argc = 2
+        end
+        if argv[1] == "me"
+            argv[1] = "Sebastian"
+        end
+        argv[1] = Expand(argv[1])
+        lastmsg = GetPosition(argv[1])
+        SaveMemory("lastmsg", lastmsg)
+        lastroom = GetRoom(argv[1])
+        SaveMemory("lastroom", lastroom)
+        STD(lastmsg, "Position of " + argv[1])
+        CTC(lastmsg)
+        Print(lastmsg)
+    else if argv[0] == "show"
+        Show(lastlist, true)
+    else if argv[0] == "help"
+        Help()
+    else if argv[0] == "about"
+        About()
+    else if argv[0] == "clear"
+        ClearText()
+    else if argv[0] == "reconnect"
+        Reconnect()
+    else if argv[0] == "playstation"
+        StartPS()
+        About()
+    else if argv[0] == "action"
+        if argc < 2
+            string cmd = Input("Who: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        argv[1] = Expand(argv[1])
+        Action(argv[1])
+    else if argv[0] == "interact"
+        if argc < 2
+            string cmd = Input("Who: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        argv[1] = Expand(argv[1])
+        if argc < 3
+            string cmd = Input("Item: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        argv[2] = Expand(argv[2])
+        Interact(argv[1], argv[2])
+    else if argv[0] == "boot"
+        if HasFloppy()
+            BootFromFloppy()
+        else
+            Error("no floppy found")
+            argv[1] = "boot"
+            argc = 2
+            Help()
+        end
+    else if argv[0] == "info"
+        Info()
+    else if argv[0] == "zap"
+        if argc < 2
+            string cmd = Input("who: ")
+            argv[1] = cmd
+            argc = Count(argv)
+        end
+        argv[1] = Expand(argv[1])
+        array things = GetThingsInRoom(GetRoom(argv[1]))
+        SetPosition("PoliceOfficeInterior_LargeRecorder_LargeRecorder_4", things[0])
+        Print("Zapping " + argv[1])
+        zap.ZapPerson(argv[1])
+        Sleep(0.2)
+        SetPosition("PoliceOfficeInterior_LargeRecorder_LargeRecorder_4", "PoliceOfficeInterior_LargeRecorder_LargeRecorder_1")
+    else if argv[0] == "copy"
+        if argc < 2
+            string cmd = Input("what: ")
+            argv[1] = cmd
+            argc = Count(argv)
+        end
+        argv[1] = Expand(argv[1])
+        Print("Copying " + argv[1] + "...")
+        ext.CopyToClipboard(argv[1])
+    else if argv[0] == "type"
+        if argc < 2
+            string cmd = Input("what: ")
+            argv[1] = cmd
+            argc = Count(argv)
+        end
+        argv[1] = Expand(argv[1])
+        lastmsg = GetTypeOfThing(argv[1])
+        SaveMemory("lastmsg", lastmsg)
+        CTC(lastmsg)
+        STD(lastmsg, "Type of " + argv[1])
+        Print(lastmsg)
+    else if argv[0] == "slurp"
+        Print("Jacking in...")
+        if argc > 1
+            argv[1] = Expand(argv[1])
+            var con = Connect(argv[1])
+            Slurp()
+        else
+            Slurp()
+        end
+    else if argv[0] == "list"
+        if argc < 2
+            string cmd = Input("Operation: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        if argv[1] == "show"
+            Show(lastlist, true)
+        else if argv[1] == "load"
+            if argc < 3
+                LoadList(lastlistaddr)
+            else
+                LoadList(1 * argv[2])
+            end
+            Print("List is loaded (" + Count(lastlist) + " items)")
+        else if argv[1] == "save"
+            if argc < 3
+                SaveList(lastlistaddr)
+            else
+                SaveList(1 * argv[2])
+            end
+            Print("List is saved (" + Count(lastlist) + " ites)")
+        else if argv[1] == "clear"
+            lastlist = []
+            #SaveList(lastlistaddr)
+            Print("List is cleared")
+        else if argv[1] == "add"
+            if argc < 3
+                string cmd = Input("Value: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            argv[2] = Expand(argv[2])
+            Append(lastlist, argv[2])
+            #SaveList(lastlistaddr)
+            Print("Added " + argv[2] + " to list")
+        else if argv[1] == "del"
+            if argc < 3
+                string cmd = Input("# ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            string cmd = argv[2]
+            if cmd[0] == "!"
+                string tmp = ""
+                loop from 1 to Count(cmd)
+                    tmp += cmd[@]
+                end
+                argv[2] = tmp
+            end
+            DeleteFromList(argv[2])
+        else if argv[1] == "get"
+            if argc < 3
+                string cmd = Input("Index: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            string cmd = argv[2]
+            if cmd[0] == "!"
+                lastmsg = Expand(argv[2])
+            else
+                number index = argv[2]
+                lastmsg = lastlist[index]
+            end
+            SaveMemory("lastmsg", lastmsg)
+            CTC(lastmsg)
+            STD(lastmsg, argv)
+            Print(lastmsg)
+        else
+            Error("does not compute: " + argv)
+            argv[1] = "list"
+            Help()
+        end
+    else if argv[0] == "set"
+        if argc < 2
+            Print("Chose one of " + vars)
+            string cmd = Input("var: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        if argc < 3
+            string cmd = Input("val: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        if argv[1] == "ctc"
+            if argv[2] == true
+                ctc = true
+            else if argv[2] == "1"
+                ctc = true
+            else if argv[2] == "on"
+                ctc = true
+            else
+                ctc = false
+            end
+            SaveMemory("ctc", ctc)
+        else if argv[1] == "std"
+            if argv[2] == true
+                std = true
+            else if argv[2] == "1"
+                std = true
+            else if argv[2] == "on"
+                std = true
+            else
+                std = false
+            end
+            SaveMemory("std", std)
+        else if argv[1] == "filter"
+            if argc < 3
+                string cmd = Input("Type: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            Print("Filter set to " + argv[2])
+            filter = argv[2]
+            SaveMemory("filter", filter)
+        else if argv[1] == "pager"
+            if argc < 3
+                string cmd = Input("#: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            Print("Pager set to " + argv[2])
+            pager = 1 * argv[2]
+            SaveMemory("pager", pager)
+        else if argv[1] == "lastlistaddr"
+            if argc < 3
+                string cmd = Input("#: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            Print("List address set to " + argv[2])
+            lastlistaddr = 1 * argv[2]
+            SaveMemory("lastlistaddr", lastlistaddr)
+        else if argv[1] == "weather"
+            Print("Setting Rain level to " + argv[2])
+            ms.SetRain(1 * argv[2])
+        else
+            Error("cannot set " + argv)
+            argv[1] = "set"
+            argc = 2
+            Help()
+        end
+    else if argv[0] == "get"
+        if argc < 2
+            Print("Chose one of " + vars)
+            Print("Everything else will show them all")
+            string cmd = Input("var: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        if argv[1] == "ctc"
+            if ctc
+                Print("ctc is ON")
+            else
+                Print("ctc is OFF")
+            end
+        else if argv[1] == "std"
+            if std
+                Print("std is ON")
+            else
+                Print("std is OFF")
+            end
+        else if argv[1] == "@"
+            Print("lastroom (@): " + lastroom)
+        else if argv[1] == "?"
+            Print("lastmsg (?): " + lastmsg)
+        else if argv[1] == "lastroom"
+            Print("lastroom (@): " + lastroom)
+        else if argv[1] == "lastmsg"
+            Print("lastmsg (?): " + lastmsg)
+        else if argv[1] == "filter"
+            Print("filter is '" + filter + "'")
+        else if argv[1] == "lastlistaddr"
+            Print("lastlistaddr is " + lastlistaddr)
+        else if argv[1] == "pager"
+            Print("pager is " + pager)
+        else if argv[1] == "weather"
+            Print("Current Rain level: " + ms.GetRain())
+        else
+            if ctc
+                Print("ctc is ON")
+            else
+                Print("ctc is OFF")
+            end
+            if std
+                Print("std is ON")
+            else
+                Print("std is OFF")
+            end
+            Print("filter is '" + filter + "'")
+            Print("pager is " + pager)
+            Print("Current Rain level: " + ms.GetRain())
+            Print("lastroom (@): " + lastroom)
+            Print("lastmsg (?): " + lastmsg)
+            Print("lastlistaddr: " + lastlistaddr)
+        end
+    else if argv[0] == "room"
+        if argc < 2
+            Print("Provide an object name or 'here' for the current room")
+            string cmd = Input("Room: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        if argv[1] == "here"
+            argv[1] = "Sebastian"
+        end
+        argv[1] = Expand(argv[1])
+        lastroom = GetRoom(argv[1])
+        SaveMemory("lastroom", lastroom)
+        CTC(lastroom)
+        STD(lastroom, "Room of " + argv[1])
+        Print(lastroom)
+    else if argv[0] == "all"
+        array all = ["connections", "people", "rooms", "type", "room", "inv"]
+        if argc < 2
+            Print("Chose one of " + all)
+            string cmd = Input("Specify: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        if argv[1] == "people"
+            lastlist = GetPeople()
+            CTC(lastlist)
+            STD(lastlist, "All people")
+            SaveList(lastlistaddr)
+            Show(lastlist, true)
+        else if argv[1] == "connections"
+            lastlist = GetConnections()
+            CTC(lastlist)
+            STD(lastlist, "All connections")
+            SaveList(lastlistaddr)
+            Show(lastlist, true)
+        else if argv[1] == "rooms"
+            lastlist = GetAllRooms()
+            CTC(lastlist)
+            STD(lastlist, "All rooms")
+            SaveList(lastlistaddr)
+            Show(lastlist, true)
+        else if argv[1] == "type"
+            if argc < 3
+                string cmd = Input("Type: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            argv[2] = Expand(argv[2])
+            lastlist = GetThingsOfType(argv[2])
+            CTC(lastlist)
+            STD(lastlist, "All items of type " + argv[2])
+            SaveList(lastlistaddr)
+            Show(lastlist, true)
+        else if argv[1] == "room"
+            if argc < 3
+                string cmd = Input("Room: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            if argv[2] == "here"
+                argv[2] = GetRoom("Sebastian")
+            end
+            string temp = argv[2]
+            if temp[0] == "@"
+                argv[2] = Expand(argv[2])
+            else
+                lastroom = argv[2]
+                SaveMemory("lastroom", lastroom)
+            end
+            lastlist = GetThingsInRoom(argv[2])
+            Filter()
+            CTC(lastlist)
+            STD(lastlist, "All items in room " + argv[2])
+            SaveList(lastlistaddr)
+            Show(lastlist, true)
+        else if argv[1] == "inv"
+            if argc < 3
+                string cmd = Input("Whos: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            if argv[2] == "my"
+                argv[2] = "Sebastian"
+            end
+            argv[2] = Expand(argv[2])
+            argv[2] = argv[2] + "_inventory"
+            lastroom = GetRoom(argv[2])
+            SaveMemory("lastroom", lastroom)
+            lastlist = GetThingsInRoom(argv[2])
+            Filter()
+            CTC(lastlist)
+            STD(lastlist, "All items in " + argv[2])
+            SaveList(lastlistaddr)
+            Show(lastlist, true)
+        else
+            Error("cannot do " + argv)
+            argv[1] = "all"
+            argc = 2
+            Help()
+        end
+    else if argv[0] == "move"
+        if argc < 2
+            Print("Provide either a source object")
+            Print("or 'room' or 'to'")
+            string cmd = Input("Source: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        if argc < 3
+            string cmd = Input("Destination: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        argv[1] = Expand(argv[1])
+        argv[2] = Expand(argv[2])
+        if argv[1] == "to"
+            # get room, connect first item and slurp
+            lastroom = GetRoom(argv[2])
+            SaveMemory("lastroom", lastroom)
+            array items = GetThingsInRoom(lastroom)
+            lastmsg = items[0]
+            SaveMemory("lastmsg", lastmsg)
+            var con = Connect(items[0])
+            if con >= 0
+                Print("Connected to " + items[0])
+                Slurp()
+            else
+                Error("could not connect to " + items[0])
+                argv[1] = "move"
+                argc = 2
+                Help()
+            end
+        else if argv[1] == "room"
+            # get first item in room, connect and slurp
+            lastroom = GetRoom(argv[2])
+            SaveMemory("lastroom", lastroom)
+            array items = GetThingsInRoom(argv[2])
+            lastmsg = items[0]
+            SaveMemory("lastmsg", lastmsg)
+            var con = Connect(items[0])
+            if con >= 0
+                Print("Connected to " + items[0])
+                Slurp()
+            else
+                Error("could not connect to " + items[0])
+                argv[1] = "move"
+                argc = 2
+                Help()
+            end
+        else
+            Print("Moving " + argv[1] + " to " + argv[2] + "...")
+            SetPosition(argv[1], argv[2])
+        end
+    else if argv[0] == "unlock"
+        if argc < 2
+            string cmd = Input("What: ")
+            Append(argv, cmd)
+            argc = Count(argv)
+        end
+        argv[1] = Expand(argv[1])
+        if argv[1] == "all"
+            if argc < 3
+                string cmd = Input("Room: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            if argv[2] == "here"
+                argv[2] = GetRoom("Sebastian")
+            end
+            argv[2] = Expand(argv[2])
+            lastroom = argv[2]
+            SaveMemory("lastroom", lastroom)
+            loop GetThingsInRoom(argv[2])
+                if GetTypeOfThing(@) == "door"
+                    # Print("unlocking " + @ + "...")
+                    Unlock(@)
+                end
+            end
+        else
+            # Print("unlocking " + argv[1] + "...")
+            lastmsg = argv[1]
+            SaveMemory("lastmsg", lastmsg)
+            Unlock(argv[1])
+        end
+    else
+        Error("unknown command: " + argv[0])
+        Print("Type 'help' for a list of commands")
+    end
+end
+
+void ReadCommand()
+    argv = []
+    string cmd = Input("> ")
+    number start = 0
+    string word = ""
+    loop c from 0 to Count(cmd) - 1
+        if cmd[c] == " "
+            Append(argv, word)
+            word = ""
+        else
+            word += cmd[c]
+        end
+    end
+    if Count(word) > 0
+        Append(argv, word)
+    end
+    argc = Count(argv)
+end
+
+void Setup()
+    # extractor for CopyToClipboard and stuff
+    ext = Connect("Hotel_ServerBasement_Extractor_1")
+    # computer with weather functions
+    ms = Connect("MeteorologyServer")
+    # computer with ZapPerson function
+    zap = Connect("PoliceOfficeInterior_LargeRecorder_LargeRecorder_4")
+end
+
+void LoadGlobals()
+    # remember to add any new globals to this function!
+    if HasMemory("ctc")
+        ctc = LoadMemory("ctc")
+    end
+    if HasMemory("std")
+        std = LoadMemory("std")
+    end
+    if HasMemory("pager")
+        pager = LoadMemory("pager")
+    end
+    if HasMemory("lastmsg")
+        lastmsg = LoadMemory("lastmsg")
+    end
+    if HasMemory("lastroom")
+        lastroom = LoadMemory("lastroom")
+    end
+    if HasMemory("filter")
+        filter = LoadMemory("filter")
+    end
+    if HasMemory("lastlistaddr")
+        lastlistaddr = LoadMemory("lastlistaddr")
+        LoadList(lastlistaddr)
+    end
+end
+
+void SaveList(number addr)
+    number max = Count(lastlist)
+    if max == 1
+        SaveMemory(addr, max)
+        SaveMemory(addr + 1, lastlist[0])
+    else
+        SaveMemory(addr, max - 1)
+        if max > 0
+            loop i from 0 to max - 1
+                SaveMemory(addr + 1 + i, lastlist[i])
+            end
+        end
+    end
+    PlaySound("Blip 1")
+end
+
+void LoadList(number addr)
+    array list = []
+    if !HasMemory(addr)
+        Error("illegal address " + addr)
+        return
+    end
+    number max = LoadMemory(addr)
+    if max > 1
+        loop i from 0 to max -1
+            Append(list, LoadMemory(addr + 1 + i))
+        end
+    else
+        Append(list, LoadMemory(addr + 1))
+    end
+    lastlist = list
+    PlaySound("Blip 2")
+end
+
+void DeleteFromList(number index)
+    number max = Count(lastlist)
+    if index < max
+        string item = lastlist[index]
+        array list = []
+        loop i from 0 to max - 1
+            if i != index
+                Append(list, lastlist[i])
+            end
+        end
+        lastlist = list
+        Print("Item #" + index + " (" + item + ") removed")
+        PlaySound("Laser 1")
+    else
+        Error("illegal index, " + index + " > " + max - 1)
+    end
+end
+
+void Error(string msg)
+    Print("!!! " + msg + " !!!")
+    PlaySound("Error")
+end
+
+void CTC(var msg)
+    if ctc
+        ext.CopyToClipboard(msg)
+        PlaySound("Coin 1")
+    end
+end
+
+void STD(var msg, string header)
+    string frame = ""
+    string divider = ""
+    loop from 1 to Count(header)
+        frame += "#"
+        divider += "-"
+    end
+    if HasFloppy()
+        if std
+            SaveData("")
+            SaveData("##" + frame)
+            if header != "none"
+                SaveData("# " + header)
+                SaveData("# " + divider)
+            end
+            if Type(msg) == "array"
+                loop from 0 to Count(msg) - 1
+                    SaveData("# " + msg[@])
+                end
+            else
+                SaveData("# " + msg)
+            end
+            SaveData("##" + frame)
+            PlaySound("Modem 1")
+        end
+    end
+end
+
+void Show(array list, bool num)
+    if Count(list) < 1
+        Error("no list available")
+        return
+    end
+    number max = Count(list) - 1
+    loop i from 0 to max
+        if num
+            Print(i + ": " + list[i])
+        else
+            Print(list[i])
+        end
+        if Mod(i + 1, pager) == 0
+            Input("Enter to continue (" + (i+1) + "/" + (max+1) + ")")
+        end
+    end
+end
+
+void Reconnect()
+    Print("Releasing all connections...")
+    DisconnectAll()
+    Print("Reconnecting useful devices...")
+    Setup()
+    Print("Done!")
+end
+
+string Expand(string cmd)
+    if cmd[0] == "@"
+        return lastroom
+    else if cmd[0] == "?"
+        return lastmsg
+    else if cmd[0] != "!"
+        return cmd
+    end
+    var index = ""
+    loop from 1 to Count(cmd) - 1
+        index += cmd[@]
+    end
+    if Count(index) > 0
+        # index = 1 * index
+        number i = index
+        if i < Count(lastlist)
+            return lastlist[i]
+        else
+            Error("Key " + index + " is not in the last list")
+            return cmd
+        end
+    else
+        Error("no index given")
+        return cmd
+    end
+end
+
+void Filter()
+    if filter == "none"
+        return
+    end
+    array ret = []
+    loop item in lastlist
+        if GetTypeOfThing(item) == filter
+            Append(ret, item)
+        end
+    end
+    lastlist = ret
+end
+
+void About()
+    ClearText()
+    Print("Hacker Board")
+    Print("============")
+    Print("Also known as 'Elite Hacker Board'")
+    Print("Also known as 'Else Hacker.Board()'")
+    Print("Also known as 'Else Hacker.Bored()'")
+    Print("")
+    Print("In the spirit of 'Snow Crash' by Neal Stephenson")
+    Print("Implemented by iq.gobo")
+    Print("")
+    Print("Type 'help' to get a list of commands")
+    Print("")
+end
+
+void Action(string person)
+    var ret = person + " at "
+    ret += GetPosition(person)
+    ret += ": "
+    var action = GetAction("PlayWife")
+    if action == ""
+        action = "Doing nothing."
+    end
+    ret += action
+    lastroom = GetRoom(person)
+    SaveMemory("lastroom", lastroom)
+    lastmsg = ret
+    CTC(lastmsg)
+    STD(lastmsg, "Action for " + person)
+    SaveMemory("lastmsg", lastmsg)
+    Print(lastmsg)
+end
+
+void Interact(string person, string item) 
+    lastroom = GetRoom(person)
+    SaveMemory("lastroom", lastroom)
+    STD(lastroom, "Raum von " + person)
+    array stuff = GetThingsInRoom(lastroom)
+    bool found = false
+    loop stuff
+        if @ == item
+            found = true
+            break
+        end
+    end
+    if found
+        InteractWith(person, item)
+        lastmsg = person + " is about to interact with " + item
+        SaveMemory("lastmsg", lastmsg)
+        CTC(lastmsg)
+        STD(lastmsg, "none")
+        Print(lastmsg)
+    else
+        Error("Invalid person (" + person + ") or item (" + item + ")")
+    end
+end
+
+
+##########################################################
+# BEGIN PLAYSTATION CODE
+#
+
+# Main loop wrapped into a function
+
+void StartPS()
+    ClearText()
+
+    Print("Welcome to PLAY STATION")
+    Print("-----------------------")
+    Print("")
+    Print("The latest in home entertainment")
+    Print("")
+    Input("Press enter to start...")
+    Sleep(1)
+    PlaySound("Powerup 4")
+
+    StartGame()
+
+    # Game loop
+    loop
+        string command = Input("> ")
+        if command == "look"
+            PlaySound("Blip 3")
+            Look()
+        else if command == "think"
+            PlaySound("Blip 3")
+            Think()
+        else if command == "use"
+            PlaySound("Blip 3")
+            Use()
+        else if command == "exit"
+            PlaySound("Shoot 4")
+            break
+        else
+            PlaySound("Shoot 3")
+            HelpPS()
+        end
+    end
+
+    ExitGame()
+end
+
+# FUNCTIONS
+
+void StartGame()
+    Fx()
+    Lock("BetweenFelixAndLongson_Door1")
+    ClearText()
+    SetPosition("PlayWife", "BetweenFelixAndLongson_Trigger_1")
+    HelpPS()
+end
+
+
+void HelpPS()
+    Print(" - AVAILABLE COMMANDS - ")
+    Print("'think' - get information")
+    Print("'look' - list things in room")
+    Print("'use' - use something in the room")
+    Print("'exit' - turn off the game")
+    Print(" ---------------------- ")
+end
+
+
+void Think()
+    var pos = GetPosition("PlayWife")
+    Print(pos)
+    var action = GetAction("PlayWife")
+    if action == ""
+        action = "Doing nothing."
+    end
+    Print("Action: " + action)
+end
+
+void Look()
+    string roomName = GetRoom("PlayWife")
+    array stuff = GetThingsInRoom(roomName)
+    number i = 0
+    loop stuff
+        Print(i + ": " + @)
+        i++
+    end
+end
+
+void Use() 
+    Look()
+    Print("Use what item?")
+    number nr = Input("nr: ")
+    string roomName = GetRoom("PlayWife")
+    array stuff = GetThingsInRoom(roomName)
+    if nr >= 0 and nr < Count(stuff)
+        var obj = stuff[nr]
+        InteractWith("PlayWife", obj)
+    else
+        Print("Invalid nr")
+    end
+end
+
+void ExitGame()
+    SetPosition("PlayWife", "CharacterRoom_Point")
+    Unlock("BetweenFelixAndLongson_Door1")
+end
+
+
+void Fx()
+    ClearText()
+    loop from 1 to 30
+        Print("* * * * * * * * * * * * * * * * * * ")
+        Print(" * * * * * * * * * * * * * * * * * *")
+    end
+    ClearText()
+end
+
+#
+# END PLAYSTATION CODE
+##########################################################
+
+
+void Help()
+    if argc < 2
+        array help = []
+        Append(help, "Commands list:")
+        Append(help, " about: a splash screen")
+        Append(help, " action: what is <person> currently doing?")
+        Append(help, " all: get a list of something")
+        Append(help, " boot: run program from floppy disk")
+        Append(help, " find: locate someone or something")
+        Append(help, " get: show some option values")
+        Append(help, " help [topic]: get help [on a topic]")
+        Append(help, " info: basic computer information")
+        Append(help, " interact: have <person> interact with <item>")
+        Append(help, " list: manipulate the list")
+        Append(help, " move: move an object")
+        Append(help, " room: which room is something in?")
+        Append(help, " set: tweak some options")
+        Append(help, " show: (re)display the list")
+        Append(help, " slurp: travel through the internet")
+        Append(help, " unlock: unlock door(s)")
+        Append(help, " zap: knock <person> out")
+        Append(help, "")
+        Append(help, "automated expansions")
+        Append(help, "The Hacker Board supports three types of substitutions:")
+        Append(help, " '@': expands to the last room from a prev. command")
+        Append(help, " '?': expands to the last message from a prev. command")
+        Append(help, " '!#': expands to #'th item of the last list")
+        Append(help, "  If 'show' displays an ordered list, use the number")
+        Append(help, "  prefixing an item after '!'")
+        Append(help, " Examples:")
+        Append(help, "  'all room here' will list items in your room")
+        Append(help, "  afterwards, use 'find !2' to get the position")
+        Append(help, "  of the third item of that list (zero indexed!)")
+        Append(help, "  or 'copy @' to put the room name to the clipboard")
+        Append(help, "  'get all' will show the current values for @ and ?")
+        Append(help, "")
+        Show(help, false)
+    else
+        if argv[1] == "about"
+            Print("'about' displays a splash screen")
+            Print("Usage: about")
+            Print("")
+        else if argv[1] == "action"
+            Print("'action' what is someone doing right now?")
+            Print("Usage: action <person>")
+            Print("")
+        else if argv[1] == "all"
+            array help = []
+            Append(help, "'all' lists something")
+            Append(help, "Usage: all <what [specifier]>")
+            Append(help, "[what] can be:")
+            Append(help, " 'connections' to list all connections")
+            Append(help, " 'people' to list all people")
+            Append(help, " 'rooms' to list all rooms")
+            Append(help, " 'type [spec]' to list everything of a type")
+            Append(help, " 'room [name]' to list everything in a room")
+            Append(help, "    'name' can be 'here' for current room")
+            Append(help, " 'inv' [whos] to show an inventory")
+            Append(help, "    'whos' can be 'my' to show your own")
+            Append(help, "")
+            Show(help, false)
+        else if argv[1] == "boot"
+            Print("'boot' runs a program from a floppy disk")
+            Print("Usage: boot")
+            Print(" You need to hold the floppy in your hands")
+            Print("")
+        else if argv[1] == "find"
+            Print("'find' locates an object")
+            Print("Usage: find <object>")
+            Print(" 'object' can be someone or something")
+            Print(" 'object' can be 'me' for Sebastian")
+            Print("")
+        else if argv[1] == "get"
+            array help = []
+            Append(help, "'get' displays some option values")
+            Append(help, "Usage: get <option>")
+            Append(help, "Options are:")
+            Append(help, " 'ctc': copy to clipboard behavior")
+            Append(help, " 'filter': filter lists by item type")
+            Append(help, " 'pager': how many items per page?")
+            Append(help, " 'std': save to floppy disk?")
+            Append(help, " 'weather': the current Rain level")
+            Append(help, " 'all': show all of the above")
+            Append(help, "  This will also show the values used")
+            Append(help, "  by command expansions, @ and ?")
+            Append(help, "")
+            Show(help, false)
+        else if argv[1] == "interact"
+            Print("'interact' makes someone use something")
+            Print("Usage: interact <person> <item>")
+            Print("")
+        else if argv[1] == "list"
+            array help = []
+            Append(help, "'list' manipulates the list")
+            Append(help, "Usage: list <option> [val|addr|index]")
+            Append(help, "Options are:")
+            Append(help, " 'add': add [val] to the list")
+            Append(help, " 'clear': empty the list, removing all items")
+            Append(help, " 'del': remove [index] from the list")
+            Append(help, " 'get': retrieves value from [index]")
+            Append(help, "  Notice: that value is copied to ?")
+            Append(help, " 'load': load list from memory [addr]")
+            Append(help, " 'save': save list to memory [addr]")
+            Append(help, " 'show': display the list")
+            Append(help, "  Notice: the shorthand is just 'show' without 'list'")
+            Append(help, "")
+            Show(help, false)
+        else if argv[1] == "room"
+            Print("'room' names a room an object is in")
+            Print("Usage: room <object|here>")
+            Print(" If 'object' ist 'here' it will return")
+            Print(" the room you are currently in")
+            Print("")
+        else if argv[1] == "set"
+            array help = []
+            Append(help, "'set' changes options")
+            Append(help, "Usage: set <option> <value>")
+            Append(help, "Options are:")
+            Append(help, " 'ctc': copy to clipboard behavior")
+            Append(help, " 'filter': filter lists by item type")
+            Append(help, "  Example: first 'set filter door', then")
+            Append(help, "  'all room here' to show all doors of")
+            Append(help, "  the room you are currently in")
+            Append(help, " 'pager': how many items per page?")
+            Append(help, " 'std': save to floppy disk?")
+            Append(help, " 'weather': the current Rain level")
+            Append(help, "")
+            Show(help, false)
+        else if argv[1] == "show"
+            Print("'show' displays the current list (again)")
+            Print("  It pauses at every 'pager'th item")
+            Print("  Set value of 'pager' to fit your screen")
+            Print("")
+        else if argv[1] == "slurp"
+            Print("'slurp' travel through the internet")
+            Print("Usage: slurp [destination]")
+            Print(" 'destination' is an object to connect to")
+            Print("")
+        else if argv[1] == "move"
+            array help = []
+            Append(help, "'move' relocates an item")
+            Append(help, "Usage: move <src> <dest>")
+            Append(help, "  'src' is the item to be moved")
+            Append(help, "    If set to 'to' will slurp to 'dest'")
+            Append(help, "    If set to 'room' will slurp to the room of 'dest'")
+            Append(help, "  'dest' is the item marking where to move to")
+            Append(help, "")
+            Show(help, false)
+        else if argv[1] == "unlock"
+            Print("'unlock' unlocks doors")
+            Print("Usage: unlock <door|all> [room]")
+            Print(" 'door' is either the name of a door")
+            Print(" or 'all' to open all doors in [room]")
+            Print("")
+        else if argv[1] == "zap"
+            Print("'zap' will knock someone out")
+            Print("Usage: zap <name>")
+            Print(" The person will be down for about one hour")
+            Print(" Works like a taser, but zaps anyone anywhere.")
+            Print("")
+        else
+            Error("no hep available for " + argv)
+        end
+    end
+end
