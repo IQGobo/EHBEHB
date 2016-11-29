@@ -1,0 +1,8 @@
+ var ps = Connect("LongsonPlaystation")
+ var psroom = ps.GetRoom("LongsonPlaystation")
+ var sebroom = ps.GetRoom("Sebastian")
+ if psroom == sebroom
+     ps.SetPosition("LongsonPlaystation", "Testing_Chair2_7")
+ else
+     ps.SetPosition("LongsonPlaystation", "SebastianCreditCard")
+ end
