@@ -188,6 +188,10 @@ loop
             end
             argv[2] = Expand(argv[2])
             JoinList(argv[2])
+            Print("The list at " + argv[2] + " was appended to the current list")
+        else if argv[1] == "type"
+            TypeList()
+            Print("The list was expanded by the type of each object")
         else if argv[1] == "get"
             if argc < 3
                 string cmd = Input("Index: ")
@@ -656,6 +660,14 @@ void JoinList(number index)
     end
 end
 
+void TypeList()
+    array list = []
+    loop lastlist
+        Append(list, "(" + GetTypeOfThing(@) + ") " + @)
+    end
+    lastlist = list
+end
+
 void Error(string msg)
     Print("!!! " + msg + " !!!")
     PlaySound("Error")
@@ -1055,6 +1067,7 @@ void Help()
             Append(help, " 'save': save list to memory [addr]")
             Append(help, " 'show': display the list")
             Append(help, "  Notice: the shorthand is just 'show' without 'list'")
+            Append(help, " 'type': determine the type of each object in the list")
             Append(help, "")
             Show(help, false)
         else if argv[1] == "room"
