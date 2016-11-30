@@ -2,6 +2,7 @@ string lastroom = ""
 array lastlist = []
 number lastlistaddr = 1000
 string lastmsg = ""
+var bak = ""
 array argv = []
 number argc = 0
 bool ctc = false
@@ -178,6 +179,15 @@ loop
                 argv[2] = tmp
             end
             DeleteFromList(argv[2])
+        else if argv[1] == "join"
+            if argc < 3
+                Print("Provide the address of the other list")
+                string cmd = Input("# ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            argv[2] = Expand(argv[2])
+            JoinList(argv[2])
         else if argv[1] == "get"
             if argc < 3
                 string cmd = Input("Index: ")
@@ -234,6 +244,16 @@ loop
                 std = false
             end
             SaveMemory("std", std)
+        else if argv[1] == "bak"
+            if argc < 3
+                string cmd = Input("Content: ")
+                Append(argv, cmd)
+                argc = Count(argv)
+            end
+            argv[2] = Expand(argv[2])
+            Print("Bak set to " + argv[2])
+            bak = argv[2]
+            SaveMemory("bak", bak)
         else if argv[1] == "filter"
             if argc < 3
                 string cmd = Input("Type: ")
@@ -298,6 +318,10 @@ loop
             Print("lastroom (@): " + lastroom)
         else if argv[1] == "lastmsg"
             Print("lastmsg (?): " + lastmsg)
+        else if argv[1] == "bak"
+            Print("bak (&): " + bak)
+        else if argv[1] == "&"
+            Print("bak (&): " + bak)
         else if argv[1] == "filter"
             Print("filter is '" + filter + "'")
         else if argv[1] == "lastlistaddr"
@@ -320,6 +344,7 @@ loop
             Print("filter is '" + filter + "'")
             Print("pager is " + pager)
             Print("Current Rain level: " + ms.GetRain())
+            Print("bak (&): " + bak)
             Print("lastroom (@): " + lastroom)
             Print("lastmsg (?): " + lastmsg)
             Print("lastlistaddr: " + lastlistaddr)
@@ -557,6 +582,9 @@ void LoadGlobals()
     if HasMemory("lastmsg")
         lastmsg = LoadMemory("lastmsg")
     end
+    if HasMemory("bak")
+        bak = LoadMemory("bak")
+    end
     if HasMemory("lastroom")
         lastroom = LoadMemory("lastroom")
     end
@@ -618,6 +646,13 @@ void DeleteFromList(number index)
         PlaySound("Laser 1")
     else
         Error("illegal index, " + index + " > " + max - 1)
+    end
+end
+
+void JoinList(number index)
+    number size = LoadMemory(index)
+    loop i from index + 1 to index + size + 1
+        Append(lastlist, LoadMemory(i))
     end
 end
 
@@ -690,7 +725,15 @@ end
 string Expand(string cmd)
     if cmd[0] == "@"
         return lastroom
+    else if cmd == "lastroom"
+        return lastroom
+    else if cmd[0] == "&"
+        return bak
+    else if cmd == "bak"
+        return bak
     else if cmd[0] == "?"
+        return lastmsg
+    else if cmd == "lastmsg"
         return lastmsg
     else if cmd[0] != "!"
         return cmd
@@ -981,6 +1024,8 @@ void Help()
             Append(help, "'get' displays some option values")
             Append(help, "Usage: get <option>")
             Append(help, "Options are:")
+            Append(help, " 'bak': show your currently backuped value")
+            Append(help, "  Notice: expansion will find this register as '&'")
             Append(help, " 'ctc': copy to clipboard behavior")
             Append(help, " 'filter': filter lists by item type")
             Append(help, " 'pager': how many items per page?")
@@ -1005,6 +1050,7 @@ void Help()
             Append(help, " 'del': remove [index] from the list")
             Append(help, " 'get': retrieves value from [index]")
             Append(help, "  Notice: that value is copied to ?")
+            Append(help, " 'join': append the list at [addr] to the current list")
             Append(help, " 'load': load list from memory [addr]")
             Append(help, " 'save': save list to memory [addr]")
             Append(help, " 'show': display the list")
@@ -1022,6 +1068,8 @@ void Help()
             Append(help, "'set' changes options")
             Append(help, "Usage: set <option> <value>")
             Append(help, "Options are:")
+            Append(help, " 'bak': a completely manual backup register")
+            Append(help, "  Notice: expansion will find this register as '&'")
             Append(help, " 'ctc': copy to clipboard behavior")
             Append(help, " 'filter': filter lists by item type")
             Append(help, "  Example: first 'set filter door', then")
